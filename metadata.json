@@ -1,0 +1,8 @@
+{
+  "name": "Postcards by Ankur",
+  "description": "Northeast India Travel Blog and Itineraries by Ankur Singha",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /itineraries/{itinerary} {
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.token.email == 'postcardsbyankur@gmail.com' || request.auth.token.email == 'akshaysinhs12@gmail.com');
+    }
+    match /blogs/{blog} {
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.token.email == 'postcardsbyankur@gmail.com' || request.auth.token.email == 'akshaysinhs12@gmail.com');
+    }
+    match /subscribers/{subscriber} {
+      allow read: if request.auth != null && (request.auth.token.email == 'postcardsbyankur@gmail.com' || request.auth.token.email == 'akshaysinhs12@gmail.com');
+      allow create: if true;
+      allow update, delete: if request.auth != null && (request.auth.token.email == 'postcardsbyankur@gmail.com' || request.auth.token.email == 'akshaysinhs12@gmail.com');
+    }
+  }
+}

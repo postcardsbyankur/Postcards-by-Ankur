@@ -260,7 +260,7 @@ export function Admin() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8 font-sans">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
             <Link to="/" className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50">
@@ -308,9 +308,272 @@ export function Admin() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className={activeTab === 'subscribers' ? "lg:col-span-3" : "lg:col-span-2"}>
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Add / Edit Form - Placed on the Left side with larger width */}
+          {activeTab !== 'subscribers' && (
+            <div className="lg:col-span-7">
+              <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold text-[#0F172A] capitalize">
+                    {editingId 
+                      ? `Edit ${activeTab === 'blogs' ? 'Blog' : 'Itinerary'}` 
+                      : `Add New ${activeTab === 'blogs' ? 'Blog' : 'Itinerary'}`}
+                  </h2>
+                  {editingId && (
+                    <button onClick={handleCancelEdit} className="text-sm text-red-500 font-medium hover:underline">
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Title</label>
+                    <input 
+                      type="text" 
+                      required 
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
+                      value={newItem.title || ''}
+                      onChange={e => setNewItem({...newItem, title: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">State</label>
+                    <select 
+                      required 
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A] bg-white"
+                      value={newItem.state || ''}
+                      onChange={e => setNewItem({...newItem, state: e.target.value})}
+                    >
+                      <option value="">Select state...</option>
+                      {states.filter(s => s !== "All States").map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Image URL or Upload</label>
+                    <div className="flex gap-2 items-center">
+                      <input 
+                        type="url" 
+                        placeholder="https://..."
+                        className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
+                        value={newItem.image || ''}
+                        onChange={e => setNewItem({...newItem, image: e.target.value})}
+                      />
+                      <label 
+                        className={`cursor-pointer border-2 border-dashed ${isUploading ? 'border-[#134E4A] bg-emerald-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'} p-2 rounded-xl transition-colors flex items-center justify-center shrink-0 w-28 h-11 relative overflow-hidden`}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                            handleImageUpload({ target: { files: e.dataTransfer.files } } as any);
+                          }
+                        }}
+                        title="Drag and drop or click to upload"
+                      >
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={handleImageUpload} 
+                          disabled={isUploading}
+                        />
+                        {isUploading ? (
+                          <div className="w-4 h-4 border-2 border-[#134E4A] border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-xs text-gray-600 font-bold">
+                             <Upload className="w-3.5 h-3.5" /> Upload
+                          </div>
+                        )}
+                      </label>
+                    </div>
+                  </div>
+                  
+                  {activeTab === 'itineraries' ? (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">Duration</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. 7 Days"
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
+                            value={newItem.duration || ''}
+                            onChange={e => setNewItem({...newItem, duration: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">Difficulty</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. Moderate"
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
+                            value={newItem.difficulty || ''}
+                            onChange={e => setNewItem({...newItem, difficulty: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Best Time</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. Oct - May"
+                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
+                          value={newItem.bestTime || ''}
+                          onChange={e => setNewItem({...newItem, bestTime: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Highlights (comma separated)</label>
+                        <input 
+                          type="text" 
+                          placeholder="Shillong, Dawki"
+                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
+                          value={newItem.highlights ? newItem.highlights.join(', ') : ''}
+                          onChange={e => setNewItem({...newItem, highlights: e.target.value.split(',').map((s: string) => s.trim())})}
+                        />
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-center mb-2 mt-4">
+                          <label className="block text-sm font-semibold text-gray-700">Destinations (Optional)</label>
+                          <button 
+                            type="button" 
+                            onClick={handleAddDestination}
+                            className="text-xs font-bold text-[#134E4A] hover:underline flex items-center gap-1 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Add Destination
+                          </button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          {(newItem.destinations || []).map((dest: any, index: number) => (
+                            <div key={index} className="p-4 border border-gray-200 rounded-xl bg-gray-50/70 space-y-3 relative">
+                              <button 
+                                type="button"
+                                onClick={() => handleRemoveDestination(index)}
+                                className="absolute top-3 right-3 text-red-500 hover:bg-red-100 p-1.5 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Day (e.g. 1)</label>
+                                <input 
+                                  type="text" 
+                                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#134E4A]"
+                                  value={dest.day || ''}
+                                  onChange={e => handleUpdateDestination(index, 'day', e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Destination Name</label>
+                                <input 
+                                  type="text" 
+                                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#134E4A]"
+                                  value={dest.title}
+                                  onChange={e => handleUpdateDestination(index, 'title', e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Description</label>
+                                <textarea 
+                                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#134E4A]"
+                                  rows={2}
+                                  value={dest.description}
+                                  onChange={e => handleUpdateDestination(index, 'description', e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Image URL or Upload</label>
+                                <div className="flex gap-2 items-center">
+                                  <input 
+                                    type="url" 
+                                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#134E4A]"
+                                    value={dest.image}
+                                    onChange={e => handleUpdateDestination(index, 'image', e.target.value)}
+                                  />
+                                  <label className="cursor-pointer bg-white border border-gray-300 hover:bg-gray-100 p-2 rounded-lg transition-colors flex items-center justify-center shrink-0">
+                                    <input 
+                                      type="file" 
+                                      accept="image/*" 
+                                      className="hidden" 
+                                      onChange={(e) => handleDestinationImageUpload(index, e)} 
+                                      disabled={isUploading}
+                                    />
+                                    <Upload className="w-4 h-4 text-gray-500" />
+                                  </label>
+                                </div>
+                                {dest.image && (
+                                  <img src={dest.image} alt="Preview" className="h-12 w-12 object-cover rounded-lg mt-2 border border-gray-200" />
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">Date</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. March 15, 2026"
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
+                            value={newItem.date || ''}
+                            onChange={e => setNewItem({...newItem, date: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">Read Time</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. 5 min read"
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
+                            value={newItem.readTime || ''}
+                            onChange={e => setNewItem({...newItem, readTime: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-end mb-1">
+                          <label className="block text-sm font-semibold text-gray-700">Excerpt / Content</label>
+                          {isUploadingQuill && <span className="text-xs text-emerald-600 font-medium animate-pulse">Uploading image...</span>}
+                        </div>
+                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden relative">
+                          {isUploadingQuill && (
+                            <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center">
+                              <div className="w-8 h-8 border-4 border-[#134E4A] border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          )}
+                          {/* @ts-ignore */}
+                          <ReactQuill 
+                            {...({ref: quillRef} as any)}
+                            theme="snow" 
+                            value={newItem.excerpt || ''} 
+                            onChange={(content) => setNewItem({...newItem, excerpt: content})}
+                            modules={modules}
+                            className="h-[320px] mb-12"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <button 
+                    type="submit"
+                    disabled={isUploading}
+                    className="w-full flex items-center justify-center gap-2 bg-[#134E4A] text-white py-3.5 rounded-xl font-bold hover:bg-emerald-800 transition-colors disabled:opacity-70 text-base shadow-sm"
+                  >
+                    {editingId ? <Edit2 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                    {editingId ? 'Save Changes' : `Add ${activeTab === 'blogs' ? 'Blog' : 'Itinerary'}`}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Existing Items / Subscribers List - Placed on the Right side (or full width for Subscribers) */}
+          <div className={activeTab === 'subscribers' ? "lg:col-span-12" : "lg:col-span-5"}>
+            <div className={`bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm ${activeTab !== 'subscribers' ? 'sticky top-8' : ''}`}>
               <div className="p-6 border-b border-gray-200 flex justify-between items-center">
                 <h2 className="text-xl font-bold text-[#0F172A] capitalize">
                   {activeTab === 'subscribers' ? 'Newsletter Subscribers' : `Existing ${activeTab}`}
@@ -342,7 +605,7 @@ export function Admin() {
                           <td className="p-4 pr-6 text-right">
                             <button 
                               onClick={() => handleDelete('subscribers', sub.id)}
-                              className="text-red-500 hover:text-red-700 transition-colors"
+                              className="text-red-500 hover:text-red-700 transition-colors font-medium"
                             >
                               Remove
                             </button>
@@ -358,30 +621,30 @@ export function Admin() {
                   </table>
                 </div>
               ) : (
-                <ul className="divide-y divide-gray-100">
+                <ul className="divide-y divide-gray-100 max-h-[calc(100vh-160px)] overflow-y-auto">
                   {(activeTab === 'itineraries' ? itineraries : blogs).map(item => (
-                  <li key={item.id} className="p-6 flex justify-between items-center hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center gap-4">
-                      {item.image && <img src={item.image} alt={item.title} className="w-16 h-16 rounded-xl object-cover" />}
-                      <div>
-                        <h3 className="font-bold text-[#0F172A]">{item.title}</h3>
-                        <p className="text-sm text-gray-500">{item.state}</p>
+                  <li key={item.id} className="p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-3.5 min-w-0 pr-2">
+                      {item.image && <img src={item.image} alt={item.title} className="w-14 h-14 rounded-xl object-cover shrink-0 border border-gray-100" />}
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-[#0F172A] text-sm leading-snug line-clamp-2">{item.title}</h3>
+                        <p className="text-xs text-gray-500 mt-0.5">{item.state}</p>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 shrink-0">
                       <button 
                         onClick={() => handleEdit(item)}
                         className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Edit"
                       >
-                        <Edit2 className="w-5 h-5" />
+                        <Edit2 className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => handleDelete(activeTab, item.id)}
                         className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                         title="Delete"
                       >
-                        <Trash2 className="w-5 h-5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </li>
@@ -393,265 +656,6 @@ export function Admin() {
               )}
             </div>
           </div>
-
-          {activeTab !== 'subscribers' && (
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 sticky top-24">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-[#0F172A] capitalize">
-                  {editingId ? `Edit ${activeTab.slice(0, -1)}` : `Add New ${activeTab.slice(0, -1)}`}
-                </h2>
-                {editingId && (
-                  <button onClick={handleCancelEdit} className="text-sm text-red-500 hover:underline">
-                    Cancel
-                  </button>
-                )}
-              </div>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Title</label>
-                  <input 
-                    type="text" 
-                    required 
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
-                    value={newItem.title || ''}
-                    onChange={e => setNewItem({...newItem, title: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">State</label>
-                  <select 
-                    required 
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A] bg-white"
-                    value={newItem.state || ''}
-                    onChange={e => setNewItem({...newItem, state: e.target.value})}
-                  >
-                    <option value="">Select state...</option>
-                    {states.filter(s => s !== "All States").map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Image URL or Upload</label>
-                  <div className="flex gap-2 items-center">
-                    <input 
-                      type="url" 
-                      placeholder="https://..."
-                      className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
-                      value={newItem.image || ''}
-                      onChange={e => setNewItem({...newItem, image: e.target.value})}
-                    />
-                    <label 
-                      className={`cursor-pointer border-2 border-dashed ${isUploading ? 'border-[#134E4A] bg-emerald-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'} p-2 rounded-xl transition-colors flex items-center justify-center shrink-0 w-24 h-11 relative overflow-hidden`}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                          handleImageUpload({ target: { files: e.dataTransfer.files } } as any);
-                        }
-                      }}
-                      title="Drag and drop or click to upload"
-                    >
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={handleImageUpload} 
-                        disabled={isUploading}
-                      />
-                      {isUploading ? (
-                        <div className="w-4 h-4 border-2 border-[#134E4A] border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-xs text-gray-500 font-bold">
-                           <Upload className="w-3.5 h-3.5" /> Upload
-                        </div>
-                      )}
-                    </label>
-                  </div>
-                </div>
-                
-                {activeTab === 'itineraries' ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">Duration</label>
-                        <input 
-                          type="text" 
-                          placeholder="e.g. 7 Days"
-                          className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
-                          value={newItem.duration || ''}
-                          onChange={e => setNewItem({...newItem, duration: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">Difficulty</label>
-                        <input 
-                          type="text" 
-                          placeholder="e.g. Moderate"
-                          className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
-                          value={newItem.difficulty || ''}
-                          onChange={e => setNewItem({...newItem, difficulty: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">Best Time</label>
-                      <input 
-                        type="text" 
-                        placeholder="e.g. Oct - May"
-                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
-                        value={newItem.bestTime || ''}
-                        onChange={e => setNewItem({...newItem, bestTime: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">Highlights (comma separated)</label>
-                      <input 
-                        type="text" 
-                        placeholder="Shillong, Dawki"
-                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
-                        value={newItem.highlights ? newItem.highlights.join(', ') : ''}
-                        onChange={e => setNewItem({...newItem, highlights: e.target.value.split(',').map((s: string) => s.trim())})}
-                      />
-                    </div>
-                    <div>
-                      <div className="flex justify-between items-center mb-2 mt-4">
-                        <label className="block text-sm font-semibold text-gray-700">Destinations (Optional)</label>
-                        <button 
-                          type="button" 
-                          onClick={handleAddDestination}
-                          className="text-xs font-bold text-[#134E4A] hover:underline flex items-center gap-1"
-                        >
-                          <Plus className="w-3 h-3" /> Add Destination
-                        </button>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        {(newItem.destinations || []).map((dest: any, index: number) => (
-                          <div key={index} className="p-4 border border-gray-200 rounded-xl bg-gray-50 space-y-3 relative">
-                            <button 
-                              type="button"
-                              onClick={() => handleRemoveDestination(index)}
-                              className="absolute top-2 right-2 text-red-500 hover:bg-red-100 p-1 rounded-lg transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                            <div>
-                              <label className="block text-xs font-semibold text-gray-600 mb-1">Day (e.g. 1)</label>
-                              <input 
-                                type="text" 
-                                className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#134E4A]"
-                                value={dest.day || ''}
-                                onChange={e => handleUpdateDestination(index, 'day', e.target.value)}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-semibold text-gray-600 mb-1">Destination Name</label>
-                              <input 
-                                type="text" 
-                                className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#134E4A]"
-                                value={dest.title}
-                                onChange={e => handleUpdateDestination(index, 'title', e.target.value)}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-semibold text-gray-600 mb-1">Description</label>
-                              <textarea 
-                                className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#134E4A]"
-                                rows={2}
-                                value={dest.description}
-                                onChange={e => handleUpdateDestination(index, 'description', e.target.value)}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-semibold text-gray-600 mb-1">Image URL or Upload</label>
-                              <div className="flex gap-2 items-center">
-                                <input 
-                                  type="url" 
-                                  className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#134E4A]"
-                                  value={dest.image}
-                                  onChange={e => handleUpdateDestination(index, 'image', e.target.value)}
-                                />
-                                <label className="cursor-pointer bg-white border border-gray-300 hover:bg-gray-100 p-1.5 rounded-lg transition-colors flex items-center justify-center shrink-0">
-                                  <input 
-                                    type="file" 
-                                    accept="image/*" 
-                                    className="hidden" 
-                                    onChange={(e) => handleDestinationImageUpload(index, e)} 
-                                    disabled={isUploading}
-                                  />
-                                  <Upload className="w-4 h-4 text-gray-500" />
-                                </label>
-                              </div>
-                              {dest.image && (
-                                <img src={dest.image} alt="Preview" className="h-12 w-12 object-cover rounded mt-2 border border-gray-200" />
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">Date</label>
-                        <input 
-                          type="text" 
-                          placeholder="e.g. March 15, 2026"
-                          className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
-                          value={newItem.date || ''}
-                          onChange={e => setNewItem({...newItem, date: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">Read Time</label>
-                        <input 
-                          type="text" 
-                          placeholder="e.g. 5 min read"
-                          className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
-                          value={newItem.readTime || ''}
-                          onChange={e => setNewItem({...newItem, readTime: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between items-end mb-1">
-                        <label className="block text-sm font-semibold text-gray-700">Excerpt / Content</label>
-                        {isUploadingQuill && <span className="text-xs text-emerald-600 font-medium animate-pulse">Uploading image...</span>}
-                      </div>
-                      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden relative">
-                        {isUploadingQuill && (
-                          <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center">
-                            <div className="w-8 h-8 border-4 border-[#134E4A] border-t-transparent rounded-full animate-spin"></div>
-                          </div>
-                        )}
-                        {/* @ts-ignore */}
-                        <ReactQuill 
-                          {...({ref: quillRef} as any)}
-                          theme="snow" 
-                          value={newItem.excerpt || ''} 
-                          onChange={(content) => setNewItem({...newItem, excerpt: content})}
-                          modules={modules}
-                          className="h-[300px] mb-12"
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                <button 
-                  type="submit"
-                  disabled={isUploading}
-                  className="w-full flex items-center justify-center gap-2 bg-[#134E4A] text-white py-3 rounded-xl font-bold hover:bg-emerald-800 transition-colors disabled:opacity-70"
-                >
-                  {editingId ? <Edit2 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                  {editingId ? 'Save Changes' : `Add ${activeTab.slice(0, -1)}`}
-                </button>
-              </form>
-            </div>
-          </div>
-          )}
         </div>
       </div>
     </div>

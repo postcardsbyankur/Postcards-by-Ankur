@@ -8,9 +8,72 @@ import { Plus, Trash2, LogOut, Edit2, Upload } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
+const resizeImageIfNeeded = (file: File, maxWidth = 1600, maxHeight = 1600): Promise<File> => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) {
+      resolve(file);
+      return;
+    }
+
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      img.onload = () => {
+        let { width, height } = img;
+
+        if (width <= maxWidth && height <= maxHeight) {
+          resolve(file);
+          return;
+        }
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const resizedFile = new File([blob], file.name, {
+              type: file.type || 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(resizedFile);
+          },
+          file.type || 'image/jpeg',
+          0.9
+        );
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
 const uploadToCloudinary = async (file: File) => {
+  const processedFile = await resizeImageIfNeeded(file, 1600, 1600);
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('file', processedFile);
   formData.append('upload_preset', 'postcardsbyankur');
 
   const res = await fetch(`https://api.cloudinary.com/v1_1/fhyotvjh/image/upload`, {

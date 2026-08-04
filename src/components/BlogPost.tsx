@@ -76,16 +76,6 @@ export function BlogPost() {
           </div>
           
           <div className="bg-white p-8 md:p-12 rounded-3xl shadow-sm border border-gray-100">
-            {post.image && (
-              <div className="mb-8 overflow-hidden rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 p-2">
-                <img 
-                  src={post.image} 
-                  alt={post.title} 
-                  className="w-full max-h-[480px] object-contain rounded-2xl mx-auto" 
-                />
-              </div>
-            )}
-            
             {/* Render HTML content safely using dangerouslySetInnerHTML */}
             <div 
               className="prose prose-lg max-w-none text-left prose-headings:text-[#0F172A] prose-a:text-[#EA580C] hover:prose-a:text-[#D97706] blog-content [&_p]:!whitespace-pre-wrap"

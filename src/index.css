@@ -9,8 +9,8 @@
 .prose img,
 .blog-content img,
 .ql-editor img {
-  max-height: 480px !important;
-  max-width: 100% !important;
+  max-height: 380px !important;
+  max-width: 80% !important;
   width: auto !important;
   height: auto !important;
   object-fit: contain !important;
@@ -24,6 +24,7 @@
 }
 
 .blog-content img[style] {
-  max-height: 480px !important;
+  max-height: 380px !important;
+  max-width: 80% !important;
   object-fit: contain !important;
 }

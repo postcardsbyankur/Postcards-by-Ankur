@@ -33,14 +33,25 @@ function MainSite() {
   const [itineraries, setItineraries] = useState<any[]>([]);
   const [blogs, setBlogs] = useState<any[]>([]);
 
+  const sortItemsByOrder = (items: any[]) => {
+    return [...items].sort((a, b) => {
+      const orderA = a.order !== undefined && a.order !== null && !isNaN(Number(a.order)) ? Number(a.order) : 999999;
+      const orderB = b.order !== undefined && b.order !== null && !isNaN(Number(b.order)) ? Number(b.order) : 999999;
+      if (orderA !== orderB) return orderA - orderB;
+      return 0;
+    });
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const itinsSnapshot = await getDocs(collection(db, 'itineraries'));
-        setItineraries(itinsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const itinsList = itinsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setItineraries(sortItemsByOrder(itinsList));
         
         const blogsSnapshot = await getDocs(collection(db, 'blogs'));
-        setBlogs(blogsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const blogsList = blogsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setBlogs(sortItemsByOrder(blogsList));
       } catch (error) {
         console.error("Error fetching data:", error);
       }

@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { db, auth, googleProvider } from './lib/firebase';
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { states, itineraries as mockItineraries, blogPosts as mockBlogs } from './data';
-import { Plus, Trash2, LogOut, Edit2, Upload } from 'lucide-react';
+import { Plus, Trash2, LogOut, Edit2, Upload, GripVertical, ChevronUp, ChevronDown, MoveVertical } from 'lucide-react';
+import { Reorder } from 'motion/react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -113,12 +114,23 @@ export function Admin() {
     return () => unsubscribe();
   }, []);
 
+  const sortItemsByOrder = (items: any[]) => {
+    return [...items].sort((a, b) => {
+      const orderA = a.order !== undefined && a.order !== null && !isNaN(Number(a.order)) ? Number(a.order) : 999999;
+      const orderB = b.order !== undefined && b.order !== null && !isNaN(Number(b.order)) ? Number(b.order) : 999999;
+      if (orderA !== orderB) return orderA - orderB;
+      return 0;
+    });
+  };
+
   const fetchData = async () => {
     const itinsSnapshot = await getDocs(collection(db, 'itineraries'));
-    setItineraries(itinsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const itinsList = itinsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setItineraries(sortItemsByOrder(itinsList));
     
     const blogsSnapshot = await getDocs(collection(db, 'blogs'));
-    setBlogs(blogsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const blogsList = blogsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setBlogs(sortItemsByOrder(blogsList));
     
     const subsSnapshot = await getDocs(collection(db, 'subscribers'));
     setSubscribers(subsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a: any, b: any) => {
@@ -126,6 +138,48 @@ export function Admin() {
       const timeB = b.subscribedAt?.toMillis() || 0;
       return timeB - timeA;
     }));
+  };
+
+  const handleReorder = async (newOrderItems: any[]) => {
+    const currentTab = activeTab;
+    if (currentTab === 'subscribers') return;
+
+    // Immediately update local state with new sequential order
+    const updatedList = newOrderItems.map((item, index) => ({
+      ...item,
+      order: index + 1
+    }));
+
+    if (currentTab === 'itineraries') {
+      setItineraries(updatedList);
+    } else if (currentTab === 'blogs') {
+      setBlogs(updatedList);
+    }
+
+    // Persist new sequential order to Firestore
+    try {
+      const batch = writeBatch(db);
+      updatedList.forEach((item, index) => {
+        const itemRef = doc(db, currentTab, item.id);
+        batch.update(itemRef, { order: index + 1 });
+      });
+      await batch.commit();
+    } catch (error) {
+      console.error(`Error saving reordered ${currentTab}:`, error);
+    }
+  };
+
+  const handleMoveStep = async (index: number, direction: 'up' | 'down') => {
+    const currentList = activeTab === 'itineraries' ? [...itineraries] : [...blogs];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= currentList.length) return;
+
+    const updated = [...currentList];
+    const temp = updated[index];
+    updated[index] = updated[targetIndex];
+    updated[targetIndex] = temp;
+
+    await handleReorder(updated);
   };
 
   const handleLogin = async () => {
@@ -248,7 +302,12 @@ export function Admin() {
       await updateDoc(doc(db, activeTab, editingId), newItem);
       setEditingId(null);
     } else {
-      await addDoc(collection(db, activeTab), newItem);
+      const itemToSave = {
+        ...newItem,
+        order: 0,
+        createdAt: Date.now(),
+      };
+      await addDoc(collection(db, activeTab), itemToSave);
     }
     setNewItem({});
     fetchData();
@@ -399,17 +458,32 @@ export function Admin() {
                       onChange={e => setNewItem({...newItem, title: e.target.value})}
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">State</label>
-                    <select 
-                      required 
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A] bg-white"
-                      value={newItem.state || ''}
-                      onChange={e => setNewItem({...newItem, state: e.target.value})}
-                    >
-                      <option value="">Select state...</option>
-                      {states.filter(s => s !== "All States").map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">State</label>
+                      <select 
+                        required 
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A] bg-white"
+                        value={newItem.state || ''}
+                        onChange={e => setNewItem({...newItem, state: e.target.value})}
+                      >
+                        <option value="">Select state...</option>
+                        {states.filter(s => s !== "All States").map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">
+                        Display Order (1 = Top)
+                      </label>
+                      <input 
+                        type="number" 
+                        min="1"
+                        placeholder="e.g. 1 (Top / First)"
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#134E4A]"
+                        value={newItem.order !== undefined ? newItem.order : ''}
+                        onChange={e => setNewItem({...newItem, order: e.target.value === '' ? '' : Number(e.target.value)})}
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Image URL or Upload</label>
@@ -637,14 +711,25 @@ export function Admin() {
           {/* Existing Items / Subscribers List - Placed on the Right side (or full width for Subscribers) */}
           <div className={activeTab === 'subscribers' ? "lg:col-span-12" : "lg:col-span-5"}>
             <div className={`bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm ${activeTab !== 'subscribers' ? 'sticky top-8' : ''}`}>
-              <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h2 className="text-xl font-bold text-[#0F172A] capitalize">
-                  {activeTab === 'subscribers' ? 'Newsletter Subscribers' : `Existing ${activeTab}`}
-                </h2>
-                {activeTab === 'subscribers' && (
+              <div className="p-5 sm:p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
+                <div>
+                  <h2 className="text-xl font-bold text-[#0F172A] capitalize">
+                    {activeTab === 'subscribers' ? 'Newsletter Subscribers' : `Existing ${activeTab}`}
+                  </h2>
+                  {activeTab !== 'subscribers' && (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Drag / swipe or use arrows to adjust display order.
+                    </p>
+                  )}
+                </div>
+                {activeTab === 'subscribers' ? (
                    <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                      {subscribers.length} Total
                    </span>
+                ) : (
+                  <span className="text-xs font-semibold text-[#134E4A] bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center gap-1 shrink-0">
+                    <MoveVertical className="w-3 h-3" /> Top = 1st
+                  </span>
                 )}
               </div>
               
@@ -684,38 +769,99 @@ export function Admin() {
                   </table>
                 </div>
               ) : (
-                <ul className="divide-y divide-gray-100 max-h-[calc(100vh-160px)] overflow-y-auto">
-                  {(activeTab === 'itineraries' ? itineraries : blogs).map(item => (
-                  <li key={item.id} className="p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center gap-3.5 min-w-0 pr-2">
-                      {item.image && <img src={item.image} alt={item.title} className="w-14 h-14 rounded-xl object-cover shrink-0 border border-gray-100" />}
-                      <div className="min-w-0">
-                        <h3 className="font-bold text-[#0F172A] text-sm leading-snug line-clamp-2">{item.title}</h3>
-                        <p className="text-xs text-gray-500 mt-0.5">{item.state}</p>
+                <Reorder.Group 
+                  axis="y" 
+                  values={activeTab === 'itineraries' ? itineraries : blogs} 
+                  onReorder={handleReorder}
+                  className="divide-y divide-gray-100 max-h-[calc(100vh-160px)] overflow-y-auto"
+                >
+                  {(activeTab === 'itineraries' ? itineraries : blogs).map((item, index, array) => (
+                    <Reorder.Item 
+                      key={item.id} 
+                      value={item}
+                      className="p-3.5 sm:p-4 flex justify-between items-center bg-white hover:bg-emerald-50/40 transition-colors select-none cursor-grab active:cursor-grabbing group border-b border-gray-100 last:border-b-0 shadow-none active:shadow-md"
+                    >
+                      <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 pr-2">
+                        {/* Position badge and Drag Grip Handle */}
+                        <div className="flex items-center gap-1 text-gray-400 group-hover:text-[#134E4A] transition-colors shrink-0">
+                          <GripVertical className="w-4 h-4 shrink-0" />
+                          <span className="w-6 h-6 rounded-md bg-gray-100 group-hover:bg-[#134E4A] group-hover:text-white text-gray-600 font-bold text-xs flex items-center justify-center transition-colors">
+                            #{index + 1}
+                          </span>
+                        </div>
+
+                        {item.image && (
+                          <img 
+                            src={item.image} 
+                            alt={item.title} 
+                            className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-cover shrink-0 border border-gray-100 pointer-events-none" 
+                          />
+                        )}
+                        
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-[#0F172A] text-sm leading-snug line-clamp-2">{item.title}</h3>
+                          <p className="text-xs text-gray-500 mt-0.5">{item.state}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      <button 
-                        onClick={() => handleEdit(item)}
-                        className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(activeTab, item.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-                {(activeTab === 'itineraries' ? itineraries : blogs).length === 0 && (
-                  <li className="p-6 text-center text-gray-500">No {activeTab} found.</li>
-                )}
-              </ul>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        {/* Move Up / Move Down buttons */}
+                        <div className="flex flex-col gap-0.5 mr-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveStep(index, 'up');
+                            }}
+                            disabled={index === 0}
+                            className="p-1 text-gray-400 hover:text-[#134E4A] hover:bg-emerald-100/60 rounded disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                            title="Move Up (Show earlier)"
+                          >
+                            <ChevronUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMoveStep(index, 'down');
+                            }}
+                            disabled={index === array.length - 1}
+                            className="p-1 text-gray-400 hover:text-[#134E4A] hover:bg-emerald-100/60 rounded disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                            title="Move Down (Show later)"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <button 
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(item);
+                          }}
+                          className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(activeTab, item.id);
+                          }}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </Reorder.Item>
+                  ))}
+                  {(activeTab === 'itineraries' ? itineraries : blogs).length === 0 && (
+                    <div className="p-6 text-center text-gray-500">No {activeTab} found.</div>
+                  )}
+                </Reorder.Group>
               )}
             </div>
           </div>

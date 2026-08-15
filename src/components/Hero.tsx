@@ -21,6 +21,9 @@ export function Hero({ activeState, setActiveState }: HeroProps) {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight max-w-4xl mx-auto mb-4">
+              <span className="block text-2xl sm:text-3xl md:text-4xl font-bold text-emerald-200 mb-2">
+                Postcards by Ankur:
+              </span>
               Discover the Unexplored Wonders of Northeast India
             </h1>
             <p className="mt-4 text-lg md:text-xl text-emerald-100 max-w-2xl mx-auto font-medium">

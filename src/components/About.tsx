@@ -104,7 +104,7 @@ export function About() {
           <div className="lg:w-7/12">
             <h2 className="text-sm font-bold tracking-widest text-[#134E4A] uppercase mb-4">Explorer & Storyteller</h2>
             <h3 className="text-4xl md:text-5xl font-extrabold mb-6 leading-tight text-[#0F172A]">
-              Uncovering the hidden soul of Northeast India.
+              The Voice Behind <span className="text-[#134E4A]">Postcards by Ankur</span>
             </h3>
             
             <div className="space-y-6 text-gray-600 text-lg leading-relaxed mb-10">
@@ -112,7 +112,7 @@ export function About() {
                 Hi, I'm Ankur. For several years, I've been exploring misty hills, dense jungles, and vibrant local communities, discovering stories and experiences that most travelers miss.
               </p>
               <p>
-                My mission is simple: to share the untold stories of this incredible region. From sipping authentic orthodox tea in Assam to trekking the living root bridges of Meghalaya, I document raw, unfiltered travel experiences.
+                On Postcards by Ankur, my mission is simple: to bring you the untold stories of this incredible region. From sipping fresh orthodox tea in Assam to trekking the ancient living root bridges of Meghalaya, I document raw, unfiltered travel experiences, local culture, and insider itineraries to help you plan your own journey off the beaten path.
               </p>
             </div>
             
